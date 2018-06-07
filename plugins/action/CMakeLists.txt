@@ -7,6 +7,8 @@ target_link_libraries(dronecore_action
     dronecore
 )
 
+target_include_directories(dronecore_action PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 install(FILES
     action.h
     action_result.h

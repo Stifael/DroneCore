@@ -7,6 +7,8 @@ target_link_libraries(dronecore_offboard
     dronecore
 )
 
+target_include_directories(dronecore_offboard PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 install(FILES
     offboard.h
     DESTINATION ${dronecore_install_include_dir}

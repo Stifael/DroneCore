@@ -43,6 +43,8 @@ target_link_libraries(dronecore
     ${DRONECORE_ZLIB_LIBRARIES}
 )
 
+target_include_directories(dronecore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 if (IOS)
     target_link_libraries(dronecore
         "-framework Foundation"
