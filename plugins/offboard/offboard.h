@@ -71,6 +71,16 @@ public:
     typedef std::function<void(Result)> result_callback_t;
 
     /**
+     * @brief Type for Position commands in NED (North East Down) relative to local reference.
+     */
+    struct PositionLocalYaw {
+    	float north_m; /**< @brief Position along local north in meters. */
+    	float east_m; /**< @brief Position along local east in meters. */
+    	float down_m; /**< @brief Position along local down in meters. */
+    	float yaw_deg; /**< @brief Yaw in degrees relative to local reference (positive is clock-wise looking from above). */
+    };
+
+    /**
      * @brief Type for Velocity commands in NED (North East Down) coordinates and yaw.
      */
     struct VelocityNEDYaw {
@@ -138,6 +148,13 @@ public:
      * @return `true` if active
      */
     bool is_active() const;
+
+    /**
+      * @brief Set the position in local coordinates and yaw.
+      *
+      * @param position_local_yaw Position and yaw `struct`.
+      */
+    void set_position_local(PositionLocalYaw position_local_yaw);
 
     /**
      * @brief Set the velocity in NED coordinates and yaw.

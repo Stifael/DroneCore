@@ -106,6 +106,33 @@ void OffboardImpl::receive_command_result(MAVLinkCommands::Result result,
     }
 }
 
+void OffboardImpl::set_position_local(Offboard::PositionLocalYaw position_local_yaw)
+{
+	 _mutex.lock();
+	 _position_local_yaw = position_local_yaw;
+
+	 if (_mode != Mode::POSITION_LOCAL) {
+		 if (_call_every_cookie) {
+			 // If we're already sending other setpoints, stop that now.
+			 _parent->remove_call_every(_call_every_cookie);
+			 _call_every_cookie = nullptr;
+		 }
+		 // We automatically send NED setpoints from now on.
+		 _parent->add_call_every(
+			 [this]() { send_position_local(); }, SEND_INTERVAL_S, &_call_every_cookie);
+
+		 _mode = Mode::POSITION_LOCAL;
+	} else {
+       // We're already sending these kind of setpoints. Since the setpoint change, let's
+       // reschedule the next call, so we don't send setpoints too often.
+       _parent->reset_call_every(_call_every_cookie);
+   }
+   _mutex.unlock();
+
+   // also send it right now to reduce latency
+   send_position_local();
+}
+
 void OffboardImpl::set_velocity_ned(Offboard::VelocityNEDYaw velocity_ned_yaw)
 {
     _mutex.lock();
@@ -160,57 +187,110 @@ void OffboardImpl::set_velocity_body(Offboard::VelocityBodyYawspeed velocity_bod
     send_velocity_body();
 }
 
+void OffboardImpl::send_position_local()
+{
+	//const static uint16_t IGNORE_X = (1 << 0);
+	//const static uint16_t IGNORE_Y = (1 << 1);
+	//const static uint16_t IGNORE_Z = (1 << 2);
+	const static uint16_t IGNORE_VX = (1 << 3);
+	const static uint16_t IGNORE_VY = (1 << 4);
+	const static uint16_t IGNORE_VZ = (1 << 5);
+	const static uint16_t IGNORE_AX = (1 << 6);
+	const static uint16_t IGNORE_AY = (1 << 7);
+	const static uint16_t IGNORE_AZ = (1 << 8);
+	// const static uint16_t IS_FORCE = (1 << 9);
+	//const static uint16_t IGNORE_YAW = (1 << 10);
+	const static uint16_t IGNORE_YAW_RATE = (1 << 11);
+
+	_mutex.lock();
+	const float yaw = to_rad_from_deg(_position_local_yaw.yaw_deg);
+	const float yaw_rate = 0.0f;
+	const float x = _position_local_yaw.north_m;
+	const float y = _position_local_yaw.east_m;
+	const float z = _position_local_yaw.down_m;
+	const float vx = 0.0f;
+	const float vy = 0.0f;
+	const float vz = 0.0f;
+	const float afx = 0.0f;
+	const float afy = 0.0f;
+	const float afz = 0.0f;
+	_mutex.unlock();
+
+	mavlink_message_t message;
+	mavlink_msg_set_position_target_local_ned_pack(
+	    GCSClient::system_id,
+	    GCSClient::component_id,
+	    &message,
+	    static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+	    _parent->get_system_id(),
+	    _parent->get_autopilot_id(),
+	    MAV_FRAME_LOCAL_NED,
+	    IGNORE_VX | IGNORE_VY | IGNORE_VZ | IGNORE_AX | IGNORE_AY | IGNORE_AZ | IGNORE_YAW_RATE,
+	    x,
+	    y,
+	    z,
+	    vx,
+	    vy,
+	    vz,
+	    afx,
+	    afy,
+	    afz,
+	    yaw,
+	    yaw_rate);
+	_parent->send_message(message);
+}
+
 void OffboardImpl::send_velocity_ned()
 {
-    const static uint16_t IGNORE_X = (1 << 0);
-    const static uint16_t IGNORE_Y = (1 << 1);
-    const static uint16_t IGNORE_Z = (1 << 2);
-    // const static uint16_t IGNORE_VX = (1 << 3);
-    // const static uint16_t IGNORE_VY = (1 << 4);
-    // const static uint16_t IGNORE_VZ = (1 << 5);
-    const static uint16_t IGNORE_AX = (1 << 6);
-    const static uint16_t IGNORE_AY = (1 << 7);
-    const static uint16_t IGNORE_AZ = (1 << 8);
-    // const static uint16_t IS_FORCE = (1 << 9);
-    // const static uint16_t IGNORE_YAW = (1 << 10);
-    const static uint16_t IGNORE_YAW_RATE = (1 << 11);
+	const static uint16_t IGNORE_X = (1 << 0);
+	const static uint16_t IGNORE_Y = (1 << 1);
+	const static uint16_t IGNORE_Z = (1 << 2);
+	// const static uint16_t IGNORE_VX = (1 << 3);
+	// const static uint16_t IGNORE_VY = (1 << 4);
+	// const static uint16_t IGNORE_VZ = (1 << 5);
+	const static uint16_t IGNORE_AX = (1 << 6);
+	const static uint16_t IGNORE_AY = (1 << 7);
+	const static uint16_t IGNORE_AZ = (1 << 8);
+	// const static uint16_t IS_FORCE = (1 << 9);
+	// const static uint16_t IGNORE_YAW = (1 << 10);
+	const static uint16_t IGNORE_YAW_RATE = (1 << 11);
 
-    _mutex.lock();
-    const float yaw = to_rad_from_deg(_velocity_ned_yaw.yaw_deg);
-    const float yaw_rate = 0.0f;
-    const float x = 0.0f;
-    const float y = 0.0f;
-    const float z = 0.0f;
-    const float vx = _velocity_ned_yaw.north_m_s;
-    const float vy = _velocity_ned_yaw.east_m_s;
-    const float vz = _velocity_ned_yaw.down_m_s;
-    const float afx = 0.0f;
-    const float afy = 0.0f;
-    const float afz = 0.0f;
-    _mutex.unlock();
+	_mutex.lock();
+	const float yaw = to_rad_from_deg(_velocity_ned_yaw.yaw_deg);
+	const float yaw_rate = 0.0f;
+	const float x = 0.0f;
+	const float y = 0.0f;
+	const float z = 0.0f;
+	const float vx = _velocity_ned_yaw.north_m_s;
+	const float vy = _velocity_ned_yaw.east_m_s;
+	const float vz = _velocity_ned_yaw.down_m_s;
+	const float afx = 0.0f;
+	const float afy = 0.0f;
+	const float afz = 0.0f;
+	_mutex.unlock();
 
-    mavlink_message_t message;
-    mavlink_msg_set_position_target_local_ned_pack(
-        GCSClient::system_id,
-        GCSClient::component_id,
-        &message,
-        static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
-        _parent->get_system_id(),
-        _parent->get_autopilot_id(),
-        MAV_FRAME_LOCAL_NED,
-        IGNORE_X | IGNORE_Y | IGNORE_Z | IGNORE_AX | IGNORE_AY | IGNORE_AZ | IGNORE_YAW_RATE,
-        x,
-        y,
-        z,
-        vx,
-        vy,
-        vz,
-        afx,
-        afy,
-        afz,
-        yaw,
-        yaw_rate);
-    _parent->send_message(message);
+	mavlink_message_t message;
+	mavlink_msg_set_position_target_local_ned_pack(
+		GCSClient::system_id,
+		GCSClient::component_id,
+		&message,
+		static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+		_parent->get_system_id(),
+		_parent->get_autopilot_id(),
+		MAV_FRAME_LOCAL_NED,
+		IGNORE_X | IGNORE_Y | IGNORE_Z | IGNORE_AX | IGNORE_AY | IGNORE_AZ | IGNORE_YAW_RATE,
+		x,
+		y,
+		z,
+		vx,
+		vy,
+		vz,
+		afx,
+		afy,
+		afz,
+		yaw,
+		yaw_rate);
+	_parent->send_message(message);
 }
 
 void OffboardImpl::send_velocity_body()
