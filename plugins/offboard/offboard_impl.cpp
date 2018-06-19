@@ -106,6 +106,34 @@ void OffboardImpl::receive_command_result(MAVLinkCommands::Result result,
     }
 }
 
+void OffboardImpl::set_translation_local(Offboard::TranslationLocalYaw translation_yaw)
+{
+	_mutex.lock();
+	_translation_yaw = translation_yaw;
+
+		 if (_mode != Mode::TRANSLATION_LOCAL) {
+			 if (_call_every_cookie) {
+				 // If we're already sending other setpoints, stop that now.
+				 _parent->remove_call_every(_call_every_cookie);
+				 _call_every_cookie = nullptr;
+			 }
+			 // We automatically send NED setpoints from now on.
+			 _parent->add_call_every(
+				 [this]() { send_translation_local(); }, SEND_INTERVAL_S, &_call_every_cookie);
+
+			 _mode = Mode::TRANSLATION_LOCAL;
+		} else {
+	       // We're already sending these kind of setpoints. Since the setpoint change, let's
+	       // reschedule the next call, so we don't send setpoints too often.
+	       _parent->reset_call_every(_call_every_cookie);
+	   }
+	   _mutex.unlock();
+
+	   // also send it right now to reduce latency
+	   send_translation_local();
+
+}
+
 void OffboardImpl::set_position_local(Offboard::PositionLocalYaw position_local_yaw)
 {
 	 _mutex.lock();
@@ -186,6 +214,84 @@ void OffboardImpl::set_velocity_body(Offboard::VelocityBodyYawspeed velocity_bod
     // also send it right now to reduce latency
     send_velocity_body();
 }
+
+void OffboardImpl::send_translation_local()
+{
+	const static uint16_t IGNORE_X        = 0;
+	const static uint16_t IGNORE_Y        = 0;
+	const static uint16_t IGNORE_Z        = 0;
+	const static uint16_t IGNORE_VX       = 0;
+	const static uint16_t IGNORE_VY       = 0;
+	const static uint16_t IGNORE_VZ       = 0;
+	const static uint16_t IGNORE_AX       = (1 << 6);
+	const static uint16_t IGNORE_AY       = (1 << 7);
+	const static uint16_t IGNORE_AZ       = (1 << 8);
+	//const static uint16_t IS_FORCE        = (1 << 9);
+	//const static uint16_t IGNORE_YAW      = (1 << 10);
+	const static uint16_t IGNORE_YAW_RATE = (1 << 11);
+
+	const float yaw = 0.0f;
+	const float yaw_rate = 0.0f;
+	const float x = 0.0f;
+	const float y = 0.0f;
+	const float z = 0.0f;
+	const float vx = 0.0f;
+	const float vy = 0.0f;
+	const float vz = 0.0f;
+	const float afx = 0.0f;
+	const float afy = 0.0f;
+	const float afz = 0.0f;
+
+	_mutex.lock();
+	yaw = to_rad_from_deg(_translation_yaw.position_yaw.yaw_deg);
+
+	// position / velocity
+	if (std::isfinite(_translation_yaw.position_yaw.north_m) && std::isfinite(_translation_yaw.position_yaw.east_m) ) {
+		x = _translation_yaw.position_yaw.north_m;
+		y = _translation_yaw.position_yaw.east_m;
+		IGNORE_VX = (1 << 3);
+		IGNORE_VY = (1 << 4);
+	} else {
+		vx = _translation_yaw.vnorth_m_s;
+		vy = _translation_yaw.veast_m_s;
+		IGNORE_X = (1 << 0);
+		IGNORE_Y = (1 << 1);
+	}
+
+	// altitude / climb-rate
+	if (std::isfinite(_translation_yaw.position_yaw.down_m)) {
+		z = _translation_yaw.position_yaw.down_m;
+		IGNORE_VZ = (1 << 5);
+	} else {
+		vz = _translation_yaw.vdown_m_s;
+		IGNORE_Z = (1 << 2);
+	}
+
+	_mutex.unlock();
+	mavlink_message_t message;
+		mavlink_msg_set_position_target_local_ned_pack(
+		    GCSClient::system_id,
+		    GCSClient::component_id,
+		    &message,
+		    static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+		    _parent->get_system_id(),
+		    _parent->get_autopilot_id(),
+		    MAV_FRAME_LOCAL_NED,
+		    IGNORE_X | IGNORE_Y | IGNORE_Z | IGNORE_VX | IGNORE_VY  | IGNORE_VZ | IGNORE_AX | IGNORE_AY | IGNORE_AZ | IGNORE_YAW_RATE,
+		    x,
+		    y,
+		    z,
+		    vx,
+		    vy,
+		    vz,
+		    afx,
+		    afy,
+		    afz,
+		    yaw,
+		    yaw_rate);
+	_parent->send_message(message);
+}
+
 
 void OffboardImpl::send_position_local()
 {

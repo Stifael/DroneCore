@@ -32,6 +32,11 @@ bool Offboard::is_active() const
     return _impl->is_active();
 }
 
+void Offboard::set_translation_local(Offboard::TranslationLocalYaw translation_yaw)
+{
+	return _impl->set_translation_local(translation_yaw);
+}
+
 void Offboard::set_position_local(Offboard::PositionLocalYaw position_local_yaw)
 {
     return _impl->set_position_local(position_local_yaw);

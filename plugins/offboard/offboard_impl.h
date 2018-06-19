@@ -27,11 +27,13 @@ public:
 
     bool is_active() const;
 
+    void set_translation_local(Offboard::TranslationLocalYaw translation_yaw);
     void set_position_local(Offboard::PositionLocalYaw position_local_yaw);
     void set_velocity_ned(Offboard::VelocityNEDYaw velocity_ned_yaw);
     void set_velocity_body(Offboard::VelocityBodyYawspeed velocity_body_yawspeed);
 
 private:
+    void send_translation_local();
     void send_position_local();
     void send_velocity_ned();
     void send_velocity_body();
@@ -45,7 +47,8 @@ private:
     void stop_sending_setpoints();
 
     mutable std::mutex _mutex{};
-    enum class Mode { NOT_ACTIVE, POSITION_LOCAL, VELOCITY_NED, VELOCITY_BODY } _mode = Mode::NOT_ACTIVE;
+    enum class Mode { NOT_ACTIVE, TRANSLATION_LOCAL, POSITION_LOCAL, VELOCITY_NED, VELOCITY_BODY } _mode = Mode::NOT_ACTIVE;
+    Offboard::TranslationLocalYaw _translation_yaw{};
     Offboard::PositionLocalYaw _position_local_yaw{};
     Offboard::VelocityNEDYaw _velocity_ned_yaw{};
     Offboard::VelocityBodyYawspeed _velocity_body_yawspeed{};

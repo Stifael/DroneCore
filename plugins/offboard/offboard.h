@@ -92,6 +92,16 @@ public:
     };
 
     /**
+     * @brief Type for general translational setpoint commands in NED (North East Down) relative to local reference frame.
+     */
+    struct TranslationLocalYaw {
+    	PositionLocalYaw position_yaw;
+    	float vnorth_m_s;
+    	float veast_m_s;
+    	float vdown_m_s;
+    };
+
+    /**
      * @brief Type for velocity commands in body coordinates (forward, right, down and yaw angular
      * rate).
      */
@@ -162,6 +172,13 @@ public:
      * @param velocity_ned_yaw Velocity and yaw `struct`.
      */
     void set_velocity_ned(VelocityNEDYaw velocity_ned_yaw);
+
+    /**
+      * @brief Set the velocity in NED coordinates and yaw.
+      *
+      * @param velocity_ned_yaw Velocity and yaw `struct`.
+      */
+     void set_translation_local(TranslationLocalYaw translation_yaw);
 
     /**
      * @brief Set the velocity body coordinates and yaw angular rate.
