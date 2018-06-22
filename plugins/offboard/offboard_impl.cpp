@@ -217,12 +217,12 @@ void OffboardImpl::set_velocity_body(Offboard::VelocityBodyYawspeed velocity_bod
 
 void OffboardImpl::send_translation_local()
 {
-	const static uint16_t IGNORE_X        = 0;
-	const static uint16_t IGNORE_Y        = 0;
-	const static uint16_t IGNORE_Z        = 0;
-	const static uint16_t IGNORE_VX       = 0;
-	const static uint16_t IGNORE_VY       = 0;
-	const static uint16_t IGNORE_VZ       = 0;
+	uint16_t IGNORE_X        = 0;
+	uint16_t IGNORE_Y        = 0;
+	uint16_t IGNORE_Z        = 0;
+	uint16_t IGNORE_VX       = 0;
+	uint16_t IGNORE_VY       = 0;
+	uint16_t IGNORE_VZ       = 0;
 	const static uint16_t IGNORE_AX       = (1 << 6);
 	const static uint16_t IGNORE_AY       = (1 << 7);
 	const static uint16_t IGNORE_AZ       = (1 << 8);
@@ -230,14 +230,14 @@ void OffboardImpl::send_translation_local()
 	//const static uint16_t IGNORE_YAW      = (1 << 10);
 	const static uint16_t IGNORE_YAW_RATE = (1 << 11);
 
-	const float yaw = 0.0f;
+	float yaw = 0.0f;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float vx = 0.0f;
+	float vy = 0.0f;
+	float vz = 0.0f;
 	const float yaw_rate = 0.0f;
-	const float x = 0.0f;
-	const float y = 0.0f;
-	const float z = 0.0f;
-	const float vx = 0.0f;
-	const float vy = 0.0f;
-	const float vz = 0.0f;
 	const float afx = 0.0f;
 	const float afy = 0.0f;
 	const float afz = 0.0f;
