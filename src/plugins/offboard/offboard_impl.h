@@ -33,6 +33,9 @@ public:
     void set_velocity_body(Offboard::VelocityBodyYawspeed velocity_body_yawspeed);
     void set_attitude(Offboard::Attitude attitude);
     void set_attitude_rate(Offboard::AttitudeRate attitude_rate);
+    void set_attitude_yaw_rate(Offboard::AttitudeYawRate attitude_yaw_rate);
+    void set_quaternion(Offboard::Quaternion quaternion);
+    void set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternion_yaw_rate);
     void set_actuator_control(Offboard::ActuatorControl actuator_control);
 
     OffboardImpl(const OffboardImpl&) = delete;
@@ -44,6 +47,9 @@ private:
     void send_velocity_body();
     void send_attitude_rate();
     void send_attitude();
+    void send_attitude_yaw_rate();
+    void send_quaternion();
+    void send_quaternion_yaw_rate();
     void send_actuator_control();
     void send_actuator_control_message(const float* controls, uint8_t group_number = 0);
 
@@ -65,6 +71,9 @@ private:
         VELOCITY_BODY,
         ATTITUDE,
         ATTITUDE_RATE,
+        ATTITUDE_YAW_RATE,
+        QUATERNION,
+        QUATERNION_YAW_RATE,
         ACTUATOR_CONTROL
     } _mode = Mode::NOT_ACTIVE;
     Offboard::PositionNEDYaw _position_ned_yaw{};
@@ -72,6 +81,9 @@ private:
     Offboard::VelocityBodyYawspeed _velocity_body_yawspeed{};
     Offboard::Attitude _attitude{};
     Offboard::AttitudeRate _attitude_rate{};
+    Offboard::AttitudeYawRate _attitude_yaw_rate{};
+    Offboard::Quaternion _quaternion{};
+    Offboard::QuaternionYawRate _quaternion_yaw_rate{};
     Offboard::ActuatorControl _actuator_control{};
     dl_time_t _last_started{};
 

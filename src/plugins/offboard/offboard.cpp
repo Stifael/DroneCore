@@ -58,6 +58,21 @@ void Offboard::set_attitude_rate(Offboard::AttitudeRate attitude_rate)
     return _impl->set_attitude_rate(attitude_rate);
 }
 
+void Offboard::set_attitude_yaw_rate(Offboard::AttitudeYawRate attitude_yaw_rate)
+{
+    return _impl->set_attitude_yaw_rate(attitude_yaw_rate);
+}
+
+void Offboard::set_quaternion(Offboard::Quaternion quaternion)
+{
+    return _impl->set_quaternion(quaternion);
+}
+
+void Offboard::set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternion_yaw_rate)
+{
+    return _impl->set_quaternion_yaw_rate(quaternion_yaw_rate);
+}
+
 void Offboard::set_actuator_control(Offboard::ActuatorControl actuator_control)
 {
     return _impl->set_actuator_control(actuator_control);

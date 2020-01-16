@@ -117,7 +117,7 @@ public:
     };
 
     /**
-     * @brief Type for Attitude rate commands in body coordinates (roll, pitch, yaw  angular
+     * @brief Type for attitude rate commands in body coordinates (roll, pitch, yaw  angular
      * rate and Thrust).
      */
     struct AttitudeRate {
@@ -129,6 +129,56 @@ public:
                             looking from above). */
         float thrust_value; /**< @brief Thrust in percentage ranging from 0 to 1 ( 0 to 100
                                percent). */
+    };
+
+    /**
+     * @brief Type for attitude body angles in NED reference frame (roll, pitch, yaw and thrust) and feedforward yaw command in
+     * body frame.
+     */
+    struct AttitudeYawRate {
+        float roll_deg; /**< @brief Roll angle in degrees (positive is right side down). */
+        float pitch_deg; /**< @brief Pitch angle in degrees (positive is nose up). */
+        float yaw_deg; /**< @brief Yaw in degrees (positive is move nose to the right). */
+        float yaw_deg_s; /** @brief Yaw-angular-rate in degrees/second (positive for clock-wise looking from above). */
+        float thrust_value; /**< @brief Thrust in percentage ranging from 0 to 1 ( 0 to 100
+                               percent). */
+    };
+
+    /**
+     * @brief Quaternion attitude and thrust.
+     *
+     * All rotations and axis systems follow the right-hand rule.
+     * The Hamilton quaternion product definition is used.
+     * A zero-rotation quaternion is represented by (1,0,0,0).
+     * The quaternion could also be written as w + xi + yj + zk.
+     *
+     * For more info see: https://en.wikipedia.org/wiki/Quaternion
+     */
+    struct Quaternion {
+        float w; /**< @brief Quaternion entry 0 also denoted as a. */
+        float x; /**< @brief Quaternion entry 1 also denoted as b. */
+        float y; /**< @brief Quaternion entry 2 also denoted as c. */
+        float z; /**< @brief Quaternion entry 3 also denoted as d. */
+        float thrust_value;  /**< @brief Thrust in percentage ranging from 0 to 1 ( 0 to 100 percent). */
+    };
+
+        /**
+     * @brief Quaternion attitude, thrust and yaw-rate as feedforward command.
+     *
+     * All rotations and axis systems follow the right-hand rule.
+     * The Hamilton quaternion product definition is used.
+     * A zero-rotation quaternion is represented by (1,0,0,0).
+     * The quaternion could also be written as w + xi + yj + zk.
+     *
+     * For more info see: https://en.wikipedia.org/wiki/Quaternion
+     */
+    struct QuaternionYawRate {
+        float w; /**< @brief Quaternion entry 0 also denoted as a. */
+        float x; /**< @brief Quaternion entry 1 also denoted as b. */
+        float y; /**< @brief Quaternion entry 2 also denoted as c. */
+        float z; /**< @brief Quaternion entry 3 also denoted as d. */
+        float yaw_deg_s; /** @brief Yaw-angular-rate in degrees/second (positive for clock-wise looking from above). */
+        float thrust_value;  /**< @brief Thrust in percentage ranging from 0 to 1 ( 0 to 100 percent). */
     };
 
     /**
@@ -235,12 +285,36 @@ public:
     void set_attitude(Attitude attitude);
 
     /**
+     * @brief Set the attitude in terms of roll, pitch and yaw in degrees with thrust
+     * in percentage and with yaw-rate in degrees per second.
+     *
+     * @param attitude roll, pitch and yaw in degrees, yaw-rate in degrees per second along with thrust in percentage .
+     */
+    void set_attitude_yaw_rate(AttitudeYawRate attitude_yaw_rate);
+
+    /**
      * @brief Set the attitude rate in terms of pitch, roll and yaw angular rate along with thrust
      * in percentage.
      *
      * @param attitude_rate roll, pitch and yaw angular rate along with thrust in percentage.
      */
     void set_attitude_rate(AttitudeRate attitude_rate);
+
+    /**
+     * @brief Set the attitude in terms of quaternion with thrust
+     * in percentage.
+     *
+     * @param quaternion w,x,y,z with thrust in percentage.
+     */
+    void set_quaternion(Quaternion quaternion);
+
+    /**
+     * @brief Set the attitude in terms of quaternion with thrust
+     * in percentage and with yaw-rate in degrees per second.
+     *
+     * @param quaternion w,x,y,z, yaw-rate in degrees per second along with thrust in percentage.
+     */
+    void set_quaternion_yaw_rate(QuaternionYawRate quaternion_yaw_rate);
 
     /**
      * @brief Set direct actuator control values to groups #0 and #1.

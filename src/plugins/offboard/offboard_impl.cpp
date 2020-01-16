@@ -244,6 +244,88 @@ void OffboardImpl::set_attitude_rate(Offboard::AttitudeRate attitude_rate)
     send_attitude_rate();
 }
 
+void OffboardImpl::set_attitude_yaw_rate(Offboard::AttitudeYawRate attitude_yaw_rate)
+{
+    _mutex.lock();
+    _attitude_yaw_rate = attitude_yaw_rate;
+
+    if (_mode != Mode::ATTITUDE_YAW_RATE) {
+        if (_call_every_cookie) {
+            // If we're already sending other setpoints, stop that now.
+            _parent->remove_call_every(_call_every_cookie);
+            _call_every_cookie = nullptr;
+        }
+
+        _parent->add_call_every(
+            [this]() { send_attitude_yaw_rate(); }, SEND_INTERVAL_S, &_call_every_cookie);
+
+        _mode = Mode::ATTITUDE_YAW_RATE;
+    } else {
+        // We're already sending these kind of setpoints. Since the setpoint change, let's
+        // reschedule the next call, so we don't send setpoints too often.
+        _parent->reset_call_every(_call_every_cookie);
+    }
+    _mutex.unlock();
+
+    // also send it right now to reduce latency
+    send_attitude_yaw_rate();
+}
+
+void OffboardImpl::set_quaternion(Offboard::Quaternion quaternion)
+{
+    _mutex.lock();
+    _quaternion = quaternion;
+
+    if (_mode != Mode::QUATERNION) {
+        if (_call_every_cookie) {
+            // If we're already sending other setpoints, stop that now.
+            _parent->remove_call_every(_call_every_cookie);
+            _call_every_cookie = nullptr;
+        }
+        // We automatically send body setpoints from now on.
+        _parent->add_call_every(
+            [this]() { send_quaternion(); }, SEND_INTERVAL_S, &_call_every_cookie);
+
+        _mode = Mode::QUATERNION;
+    } else {
+        // We're already sending these kind of setpoints. Since the setpoint change, let's
+        // reschedule the next call, so we don't send setpoints too often.
+        _parent->reset_call_every(_call_every_cookie);
+    }
+    _mutex.unlock();
+
+    // also send it right now to reduce latency
+    send_quaternion();
+}
+
+void OffboardImpl::set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternion_yaw_rate)
+{
+    _mutex.lock();
+    _quaternion_yaw_rate = quaternion_yaw_rate;
+
+    if (_mode != Mode::QUATERNION_YAW_RATE) {
+        if (_call_every_cookie) {
+            // If we're already sending other setpoints, stop that now.
+            _parent->remove_call_every(_call_every_cookie);
+            _call_every_cookie = nullptr;
+        }
+        // We automatically send body setpoints from now on.
+        _parent->add_call_every(
+            [this]() { send_quaternion_yaw_rate(); }, SEND_INTERVAL_S, &_call_every_cookie);
+
+        _mode = Mode::QUATERNION_YAW_RATE;
+    } else {
+        // We're already sending these kind of setpoints. Since the setpoint change, let's
+        // reschedule the next call, so we don't send setpoints too often.
+        _parent->reset_call_every(_call_every_cookie);
+    }
+    _mutex.unlock();
+
+    // also send it right now to reduce latency
+    send_quaternion_yaw_rate();
+}
+
+
 void OffboardImpl::set_actuator_control(Offboard::ActuatorControl actuator_control)
 {
     _mutex.lock();
@@ -510,6 +592,123 @@ void OffboardImpl::send_attitude_rate()
         body_roll_rate,
         body_pitch_rate,
         body_yaw_rate,
+        thrust);
+    _parent->send_message(message);
+}
+
+void OffboardImpl::send_attitude_yaw_rate()
+{
+    const static uint8_t IGNORE_BODY_ROLL_RATE = (1 << 0);
+    const static uint8_t IGNORE_BODY_PITCH_RATE = (1 << 1);
+    // const static uint8_t IGNORE_BODY_YAW_RATE = (1 << 2);
+    // const static uint8_t IGNORE_4 = (1 << 3);
+    // const static uint8_t IGNORE_5 = (1 << 4);
+    // const static uint8_t IGNORE_6 = (1 << 5);
+    // const static uint8_t IGNORE_THRUST = (1 << 6);
+    // const static uint8_t IGNORE_ATTITUDE = (1 << 7);
+
+    _mutex.lock();
+    const float thrust = _attitude_yaw_rate.thrust_value;
+    const float roll = to_rad_from_deg(_attitude_yaw_rate.roll_deg);
+    const float pitch = to_rad_from_deg(_attitude_yaw_rate.pitch_deg);
+    const float yaw = to_rad_from_deg(_attitude_yaw_rate.yaw_deg);
+    const float yaw_rad_s = to_rad_from_deg(_attitude_yaw_rate.yaw_deg_s);
+    _mutex.unlock();
+
+    const double cos_phi_2 = cos(double(roll) / 2.0);
+    const double sin_phi_2 = sin(double(roll) / 2.0);
+    const double cos_theta_2 = cos(double(pitch) / 2.0);
+    const double sin_theta_2 = sin(double(pitch) / 2.0);
+    const double cos_psi_2 = cos(double(yaw) / 2.0);
+    const double sin_psi_2 = sin(double(yaw) / 2.0);
+
+    float q[4];
+
+    q[0] = float(cos_phi_2 * cos_theta_2 * cos_psi_2 + sin_phi_2 * sin_theta_2 * sin_psi_2);
+    q[1] = float(sin_phi_2 * cos_theta_2 * cos_psi_2 - cos_phi_2 * sin_theta_2 * sin_psi_2);
+    q[2] = float(cos_phi_2 * sin_theta_2 * cos_psi_2 + sin_phi_2 * cos_theta_2 * sin_psi_2);
+    q[3] = float(cos_phi_2 * cos_theta_2 * sin_psi_2 - sin_phi_2 * sin_theta_2 * cos_psi_2);
+
+    mavlink_message_t message;
+    mavlink_msg_set_attitude_target_pack(
+        _parent->get_own_system_id(),
+        _parent->get_own_component_id(),
+        &message,
+        static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+        _parent->get_system_id(),
+        _parent->get_autopilot_id(),
+        IGNORE_BODY_ROLL_RATE | IGNORE_BODY_PITCH_RATE,
+        q,
+        0,
+        0,
+        yaw_rad_s,
+        thrust);
+    _parent->send_message(message);
+}
+
+void OffboardImpl::send_quaternion()
+{
+    const static uint8_t IGNORE_BODY_ROLL_RATE = (1 << 0);
+    const static uint8_t IGNORE_BODY_PITCH_RATE = (1 << 1);
+    const static uint8_t IGNORE_BODY_YAW_RATE = (1 << 2);
+    // const static uint8_t IGNORE_4 = (1 << 3);
+    // const static uint8_t IGNORE_5 = (1 << 4);
+    // const static uint8_t IGNORE_6 = (1 << 5);
+    // const static uint8_t IGNORE_THRUST = (1 << 6);
+    // const static uint8_t IGNORE_ATTITUDE = (1 << 7);
+
+    _mutex.lock();
+    const float thrust = _quaternion.thrust_value;
+    float q[4] = {_quaternion.w, _quaternion.x, _quaternion.y, _quaternion.z};
+    _mutex.unlock();
+
+    mavlink_message_t message;
+    mavlink_msg_set_attitude_target_pack(
+        _parent->get_own_system_id(),
+        _parent->get_own_component_id(),
+        &message,
+        static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+        _parent->get_system_id(),
+        _parent->get_autopilot_id(),
+        IGNORE_BODY_ROLL_RATE | IGNORE_BODY_PITCH_RATE | IGNORE_BODY_YAW_RATE,
+        q,
+        0,
+        0,
+        0,
+        thrust);
+    _parent->send_message(message);
+}
+
+void OffboardImpl::send_quaternion_yaw_rate()
+{
+    const static uint8_t IGNORE_BODY_ROLL_RATE = (1 << 0);
+    const static uint8_t IGNORE_BODY_PITCH_RATE = (1 << 1);
+    // const static uint8_t IGNORE_BODY_YAW_RATE = (1 << 2);
+    // const static uint8_t IGNORE_4 = (1 << 3);
+    // const static uint8_t IGNORE_5 = (1 << 4);
+    // const static uint8_t IGNORE_6 = (1 << 5);
+    // const static uint8_t IGNORE_THRUST = (1 << 6);
+    // const static uint8_t IGNORE_ATTITUDE = (1 << 7);
+
+    _mutex.lock();
+    const float thrust = _quaternion_yaw_rate.thrust_value;
+    float q[4] = {_quaternion_yaw_rate.w, _quaternion_yaw_rate.x, _quaternion_yaw_rate.y, _quaternion_yaw_rate.z};
+    const float yaw_rad_s = to_rad_from_deg(_quaternion_yaw_rate.yaw_deg_s);
+    _mutex.unlock();
+
+    mavlink_message_t message;
+    mavlink_msg_set_attitude_target_pack(
+        _parent->get_own_system_id(),
+        _parent->get_own_component_id(),
+        &message,
+        static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+        _parent->get_system_id(),
+        _parent->get_autopilot_id(),
+        IGNORE_BODY_ROLL_RATE | IGNORE_BODY_PITCH_RATE,
+        q,
+        0,
+        0,
+        yaw_rad_s,
         thrust);
     _parent->send_message(message);
 }
