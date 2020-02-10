@@ -36,7 +36,7 @@ public:
     void set_attitude_yaw_rate(Offboard::AttitudeYawRate attitude_yaw_rate);
     void set_quaternion(Offboard::Quaternion quaternion);
     void set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternion_yaw_rate);
-    void set_roll_pitch_altitude(Offboard::RollPitchAltitdue roll_pitch_altitude);
+    void set_roll_pitch_altitude(Offboard::RollPitchAltitude roll_pitch_altitude);
     void set_actuator_control(Offboard::ActuatorControl actuator_control);
 
     OffboardImpl(const OffboardImpl&) = delete;
@@ -88,7 +88,7 @@ private:
     Offboard::Quaternion _quaternion{};
     Offboard::QuaternionYawRate _quaternion_yaw_rate{};
     Offboard::ActuatorControl _actuator_control{};
-    Offboard::RollPitchAltitdue _roll_pitch_altitude{};
+    Offboard::RollPitchAltitude _roll_pitch_altitude{};
     dl_time_t _last_started{};
 
     void* _call_every_cookie = nullptr;

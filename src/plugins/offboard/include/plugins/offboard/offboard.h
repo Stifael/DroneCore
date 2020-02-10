@@ -190,7 +190,7 @@ public:
      * All rotations and axis systems follow the right-hand rule.
      *
      */
-    struct RollPitchAltitdue {
+    struct RollPitchAltitude {
         float roll_deg; /**< @brief Roll angle in degrees (positive is right side down). */
         float pitch_deg; /**< @brief Pitch angle in degrees (positive is nose up). */
         float yaw_deg_s; /**< @brief Yaw-angular-rate in degrees/second (positive for clock-wise looking from above). */
@@ -330,7 +330,7 @@ public:
      *
      * @param roll_pitch_altitude roll, pitch and yaw angular rate along with vertical speed down.
      */
-    void set_roll_pitch_altitude(RollPitchAltitdue roll_pitch_altitude);
+    void set_roll_pitch_altitude(RollPitchAltitude roll_pitch_altitude);
 
     /**
      * @brief Set the attitude in terms of quaternion with thrust

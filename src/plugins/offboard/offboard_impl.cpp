@@ -325,7 +325,7 @@ void OffboardImpl::set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternio
     send_quaternion_yaw_rate();
 }
 
-void OffboardImpl::set_roll_pitch_altitude(Offboard::RollPitchAltitdue roll_pitch_altitude)
+void OffboardImpl::set_roll_pitch_altitude(Offboard::RollPitchAltitude roll_pitch_altitude)
 {
     _mutex.lock();
     _roll_pitch_altitude = roll_pitch_altitude;

@@ -73,6 +73,11 @@ void Offboard::set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternion_ya
     return _impl->set_quaternion_yaw_rate(quaternion_yaw_rate);
 }
 
+void Offboard::set_roll_pitch_altitude(Offboard::RollPitchAltitude roll_pitch_altitude)
+{
+    return _impl->set_roll_pitch_altitude(roll_pitch_altitude);
+}
+
 void Offboard::set_actuator_control(Offboard::ActuatorControl actuator_control)
 {
     return _impl->set_actuator_control(actuator_control);
