@@ -325,6 +325,32 @@ void OffboardImpl::set_quaternion_yaw_rate(Offboard::QuaternionYawRate quaternio
     send_quaternion_yaw_rate();
 }
 
+void OffboardImpl::set_roll_pitch_altitude(Offboard::RollPitchAltitdue roll_pitch_altitude)
+{
+    _mutex.lock();
+    _roll_pitch_altitude = roll_pitch_altitude;
+
+    if (_mode != Mode::ROLL_PITCH_ALTITUDE) {
+        if (_call_every_cookie) {
+            // If we're already sending other setpoints, stop that now.
+            _parent->remove_call_every(_call_every_cookie);
+            _call_every_cookie = nullptr;
+        }
+        // We automatically send body setpoints from now on.
+        _parent->add_call_every(
+            [this]() { send_roll_pitch_altitude(); }, SEND_INTERVAL_S, &_call_every_cookie);
+
+        _mode = Mode::ROLL_PITCH_ALTITUDE;
+    } else {
+        // We're already sending these kind of setpoints. Since the setpoint change, let's
+        // reschedule the next call, so we don't send setpoints too often.
+        _parent->reset_call_every(_call_every_cookie);
+    }
+    _mutex.unlock();
+
+    // also send it right now to reduce latency
+    send_roll_pitch_altitude();
+}
 
 void OffboardImpl::set_actuator_control(Offboard::ActuatorControl actuator_control)
 {
@@ -746,6 +772,28 @@ void OffboardImpl::send_actuator_control()
             send_actuator_control_message(&actuator_control.groups[i].controls[0], i);
         }
     }
+}
+
+void OffboardImpl::send_roll_pitch_altitude()
+{
+    _mutex.lock();
+    const float roll = to_rad_from_deg(_roll_pitch_altitude.roll_deg);
+    const float pitch = to_rad_from_deg(_roll_pitch_altitude.pitch_deg);
+    const float yaw_rate = to_rad_from_deg(_roll_pitch_altitude.yaw_deg_s);
+    const float vel_down = to_rad_from_deg(_roll_pitch_altitude.down_m_s);
+    const uint8_t alt_hold = _roll_pitch_altitude.alt_hold;
+    _mutex.unlock();
+
+    mavlink_message_t message;
+    mavlink_msg_set_attitude_velocity_z_target_pack(
+        _parent->get_own_system_id(),
+        _parent->get_own_component_id(),
+        &message,
+        static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+        _parent->get_system_id(),
+        _parent->get_autopilot_id(),
+        roll, pitch, yaw_rate, vel_down, alt_hold);
+    _parent->send_message(message);
 }
 
 void OffboardImpl::process_heartbeat(const mavlink_message_t& message)

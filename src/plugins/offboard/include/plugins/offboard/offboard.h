@@ -162,7 +162,7 @@ public:
         float thrust_value;  /**< @brief Thrust in percentage ranging from 0 to 1 ( 0 to 100 percent). */
     };
 
-        /**
+     /**
      * @brief Quaternion attitude, thrust and yaw-rate as feedforward command.
      *
      * All rotations and axis systems follow the right-hand rule.
@@ -179,6 +179,23 @@ public:
         float z; /**< @brief Quaternion entry 3 also denoted as d. */
         float yaw_deg_s; /** @brief Yaw-angular-rate in degrees/second (positive for clock-wise looking from above). */
         float thrust_value;  /**< @brief Thrust in percentage ranging from 0 to 1 ( 0 to 100 percent). */
+    };
+
+     /**
+     * @brief Roll/Pitch, velocity in z-direction and yaw-rate as feedforward command.
+     *
+     * Roll and pitch commands are in degrees and in local frame. Velcoity n z-Direction follows NED-frame with unit m/s.
+     * Yaw-rate is in deg/s and in body-frame.
+     *
+     * All rotations and axis systems follow the right-hand rule.
+     *
+     */
+    struct RollPitchAltitdue {
+        float roll_deg; /**< @brief Roll angle in degrees (positive is right side down). */
+        float pitch_deg; /**< @brief Pitch angle in degrees (positive is nose up). */
+        float yaw_deg_s; /**< @brief Yaw-angular-rate in degrees/second (positive for clock-wise looking from above). */
+        float down_m_s;  /**< @brief Velocity down in metres/second. */
+        bool  alt_hold; /**< @brief If true and down_m_s == 0, then position-lock in vertical direction will be applied. */
     };
 
     /**
@@ -309,12 +326,20 @@ public:
     void set_quaternion(Quaternion quaternion);
 
     /**
+     * @brief Set the pitch, roll and yaw angular rate along with downwards speed.
+     *
+     * @param roll_pitch_altitude roll, pitch and yaw angular rate along with vertical speed down.
+     */
+    void set_roll_pitch_altitude(RollPitchAltitdue roll_pitch_altitude);
+
+    /**
      * @brief Set the attitude in terms of quaternion with thrust
      * in percentage and with yaw-rate in degrees per second.
      *
      * @param quaternion w,x,y,z, yaw-rate in degrees per second along with thrust in percentage.
      */
     void set_quaternion_yaw_rate(QuaternionYawRate quaternion_yaw_rate);
+
 
     /**
      * @brief Set direct actuator control values to groups #0 and #1.
