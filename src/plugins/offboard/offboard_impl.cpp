@@ -780,7 +780,7 @@ void OffboardImpl::send_roll_pitch_altitude()
     const float roll = to_rad_from_deg(_roll_pitch_altitude.roll_deg);
     const float pitch = to_rad_from_deg(_roll_pitch_altitude.pitch_deg);
     const float yaw_rate = to_rad_from_deg(_roll_pitch_altitude.yaw_deg_s);
-    const float vel_down = to_rad_from_deg(_roll_pitch_altitude.down_m_s);
+    const float vel_down = _roll_pitch_altitude.down_m_s;
     const uint8_t alt_hold = _roll_pitch_altitude.alt_hold;
     _mutex.unlock();
 
