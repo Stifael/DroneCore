@@ -776,24 +776,64 @@ void OffboardImpl::send_actuator_control()
 
 void OffboardImpl::send_roll_pitch_altitude()
 {
+    // HACK: this message is misused to pass attitude-altitude control
+    //const static uint8_t IGNORE_BODY_ROLL_RATE = (1 << 0);
+    // const static uint8_t IGNORE_BODY_PITCH_RATE = (1 << 1);
+    // const static uint8_t IGNORE_BODY_YAW_RATE = (1 << 2);
+    // const static uint8_t IGNORE_4 = (1 << 3);
+    uint8_t IGNORE_5 = 0;
+    const static uint8_t IGNORE_6 = (1 << 5); // inidcates to autopilot to use different message convention
+    // const static uint8_t IGNORE_THRUST = (1 << 6);
+    // const static uint8_t IGNORE_ATTITUDE = (1 << 7);
+
     _mutex.lock();
-    const float roll = to_rad_from_deg(_roll_pitch_altitude.roll_deg);
-    const float pitch = to_rad_from_deg(_roll_pitch_altitude.pitch_deg);
-    const float yaw_rate = to_rad_from_deg(_roll_pitch_altitude.yaw_deg_s);
-    const float vel_down = _roll_pitch_altitude.down_m_s;
-    const uint8_t alt_hold = _roll_pitch_altitude.alt_hold;
+   const float roll = to_rad_from_deg(_roll_pitch_altitude.roll_deg);
+   const float pitch = to_rad_from_deg(_roll_pitch_altitude.pitch_deg);
+   const float yaw_rate = to_rad_from_deg(_roll_pitch_altitude.yaw_deg_s);
+   const float vel_down = _roll_pitch_altitude.down_m_s;
+   float q[4] = {roll, pitch, yaw_rate, vel_down}; //new convention
+
+   if (_roll_pitch_altitude.alt_hold)
+   {
+       IGNORE_5 = (1 << 4);
+   }
     _mutex.unlock();
 
     mavlink_message_t message;
-    mavlink_msg_set_attitude_velocity_z_target_pack(
+    mavlink_msg_set_attitude_target_pack(
         _parent->get_own_system_id(),
         _parent->get_own_component_id(),
         &message,
         static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
         _parent->get_system_id(),
         _parent->get_autopilot_id(),
-        roll, pitch, yaw_rate, vel_down, alt_hold);
+        IGNORE_5 | IGNORE_6,
+        q,
+        0,
+        0,
+        0,
+        0);
     _parent->send_message(message);
+
+    // uncommnet the below once all components understand the same mavlink components
+   //_mutex.lock();
+   //const float roll = to_rad_from_deg(_roll_pitch_altitude.roll_deg);
+   //const float pitch = to_rad_from_deg(_roll_pitch_altitude.pitch_deg);
+   //const float yaw_rate = to_rad_from_deg(_roll_pitch_altitude.yaw_deg_s);
+   //const float vel_down = _roll_pitch_altitude.down_m_s;
+   //const uint8_t alt_hold = _roll_pitch_altitude.alt_hold;
+   //_mutex.unlock();
+
+   //mavlink_message_t message;
+   //mavlink_msg_set_attitude_velocity_z_target_pack(
+   //    _parent->get_own_system_id(),
+   //    _parent->get_own_component_id(),
+   //    &message,
+   //    static_cast<uint32_t>(_parent->get_time().elapsed_s() * 1e3),
+   //    _parent->get_system_id(),
+   //    _parent->get_autopilot_id(),
+   //    roll, pitch, yaw_rate, vel_down, alt_hold);
+   //_parent->send_message(message);
 }
 
 void OffboardImpl::process_heartbeat(const mavlink_message_t& message)
